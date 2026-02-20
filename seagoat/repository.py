@@ -132,7 +132,7 @@ class Repository:
         self.frecency_scores = {}
         for file, commits in self.file_changes.items():
             score = sum(
-                1 / (math.log(days_passed + 2, 2))
+                math.exp(-0.01 * days_passed)
                 for _, days_passed, __, ___ in commits
             )
             self.frecency_scores[file] = score
@@ -141,7 +141,7 @@ class Repository:
         return [
             (self.get_file(filename), score)
             for filename, score in sorted(
-                self.frecency_scores.items(), key=lambda x: x[1]
+                self.frecency_scores.items(), key=lambda x: x[1], reverse=True
             )
         ]
 
