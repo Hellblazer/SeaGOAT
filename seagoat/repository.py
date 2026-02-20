@@ -141,7 +141,7 @@ class Repository:
         return [
             (self.get_file(filename), score)
             for filename, score in sorted(
-                self.frecency_scores.items(), key=lambda x: x[0][1]
+                self.frecency_scores.items(), key=lambda x: x[1]
             )
         ]
 
