@@ -458,7 +458,7 @@ def mock_halo(mocker):
 
 @pytest.fixture
 def runner_with_error(mocker, mock_halo):
-    return CliRunner(mix_stderr=False)
+    return CliRunner()
 
 
 @pytest.fixture

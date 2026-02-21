@@ -3,6 +3,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 from unittest.mock import ANY
 
@@ -94,7 +95,7 @@ def test_status_endpoint_with_some_files_not_analyzed(server):
 
 def test_status_1(repo, runner):
     result = subprocess.run(
-        ["python", "-m", "seagoat.server", "status", repo.working_dir],
+        [sys.executable, "-m", "seagoat.server", "status", repo.working_dir],
         capture_output=True,
         text=True,
         check=False,
@@ -114,7 +115,7 @@ def test_status_1(repo, runner):
 @pytest.mark.usefixtures("server")
 def test_status_2(repo):
     result = subprocess.run(
-        ["python", "-m", "seagoat.server", "status", repo.working_dir],
+        [sys.executable, "-m", "seagoat.server", "status", repo.working_dir],
         capture_output=True,
         text=True,
         check=False,
@@ -130,13 +131,13 @@ def test_stop(repo):
     assert psutil.pid_exists(server_info["pid"])
 
     subprocess.run(
-        ["python", "-m", "seagoat.server", "stop", repo.working_dir],
+        [sys.executable, "-m", "seagoat.server", "stop", repo.working_dir],
         capture_output=True,
         text=True,
         check=False,
     )
     result = subprocess.run(
-        ["python", "-m", "seagoat.server", "status", repo.working_dir],
+        [sys.executable, "-m", "seagoat.server", "status", repo.working_dir],
         capture_output=True,
         text=True,
         check=False,
@@ -149,7 +150,7 @@ def test_stop(repo):
 def test_status_with_json_when_server_not_running(repo):
     result = subprocess.run(
         [
-            "python",
+            sys.executable,
             "-m",
             "seagoat.server",
             "status",
@@ -172,7 +173,7 @@ def test_status_with_json_when_server_not_running(repo):
 def test_status_with_json_when_server_running(repo):
     result = subprocess.run(
         [
-            "python",
+            sys.executable,
             "-m",
             "seagoat.server",
             "status",
@@ -195,7 +196,7 @@ def test_status_with_json_when_server_running(repo):
 def assert_server_status(repo, running):
     result = subprocess.run(
         [
-            "python",
+            sys.executable,
             "-m",
             "seagoat.server",
             "status",
@@ -309,7 +310,7 @@ def test_start_server_on_specific_port(custom_port, repo, mocker, managed_proces
     mocker.patch("seagoat.server.TaskQueue")
 
     server_cmd = [
-        "python",
+        sys.executable,
         "-m",
         "seagoat.server",
         "start",
@@ -380,7 +381,7 @@ def test_start_server_on_custom_port_using_config_files(
     mocker.patch("seagoat.server.TaskQueue")
 
     server_cmd = [
-        "python",
+        sys.executable,
         "-m",
         "seagoat.server",
         "start",

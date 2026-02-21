@@ -68,6 +68,29 @@ class Repository:
 
         return object_id
 
+    def _get_all_object_ids(self, filenames):
+        """
+        Batch fetch git object IDs for multiple files in a single subprocess call.
+        Returns a dict mapping filename -> object_id.
+        Files not present at HEAD are omitted.
+        """
+        if not filenames:
+            return {}
+
+        output = subprocess.check_output(
+            ["git", "-C", str(self.path), "ls-tree", "HEAD", "--"] + list(filenames),
+            text=True,
+        )
+
+        result = {}
+        for line in output.splitlines():
+            tab_pos = line.index("\t")
+            filename = line[tab_pos + 1 :]
+            object_id = line[:tab_pos].split()[2]
+            result[filename] = object_id
+
+        return result
+
     def get_blob_data(self, object_id: str) -> str:
         data = subprocess.check_output(
             ["git", "-C", str(self.path), "cat-file", "-p", object_id]
@@ -138,11 +161,24 @@ class Repository:
             self.frecency_scores[file] = score
 
     def top_files(self):
+        sorted_files = sorted(
+            self.frecency_scores.items(), key=lambda x: x[1], reverse=True
+        )
+        object_ids = self._get_all_object_ids([f for f, _ in sorted_files])
         return [
-            (self.get_file(filename), score)
-            for filename, score in sorted(
-                self.frecency_scores.items(), key=lambda x: x[1], reverse=True
+            (
+                GitFile(
+                    self,
+                    filename,
+                    str(self.path / filename),
+                    object_ids[filename],
+                    score,
+                    [commit[3] for commit in self.file_changes[filename]],
+                ),
+                score,
             )
+            for filename, score in sorted_files
+            if filename in object_ids
         ]
 
     def get_file(self, filename: str):
