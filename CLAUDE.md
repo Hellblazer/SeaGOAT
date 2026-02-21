@@ -33,6 +33,29 @@ poetry run seagoat-server start ~/path/to/repo
 poetry run seagoat "search query" /path/to/repo
 ```
 
+### Environment notes (macOS without pyenv CPython)
+
+If `poetry install` fails because pyenv only has PyPy, create the venv manually:
+
+```bash
+/Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m venv .venv
+PATH="/opt/homebrew/bin:$PATH" .venv/bin/pip install -e ".[dev]"
+```
+
+`ripgrep` must be installed and on PATH (`brew install ripgrep`). Run tests with the correct PATH:
+
+```bash
+PATH="/opt/homebrew/bin:$PATH" .venv/bin/python -m pytest tests/
+```
+
+### Snapshot tests
+
+Snapshot tests in `tests/test_snapshot.py` compare query results against stored snapshots using `syrupy`. After changes that affect result ranking (e.g. frecency formula), update snapshots with:
+
+```bash
+PATH="/opt/homebrew/bin:$PATH" .venv/bin/python -m pytest tests/test_snapshot.py --snapshot-update
+```
+
 ## Architecture
 
 SeaGOAT is a local semantic code search engine with a **client-server architecture**. The server indexes a Git repository into a vector database and serves queries. The CLI client connects to the server.
@@ -64,6 +87,9 @@ SeaGOAT is a local semantic code search engine with a **client-server architectu
 - **Supported file types**: Hard-coded in `seagoat/utils/file_types.py`. Only files matching the allowed extensions are indexed.
 - **Cache invalidation**: The engine cache (`Cache("cache", ...)`) tracks which chunks have been analyzed via `chunks_already_analyzed`. The chroma cache invalidates stale entries using `git_object_id` on every query. If `CACHE_FORMAT_VERSION` is bumped, all caches are invalidated automatically (different hash → different folder).
 - **Test isolation**: Tests use `PYTEST_CURRENT_TEST` env var (set in `conftest.py`) to switch to a separate `seagoat-pytest` cache directory. The `mock_chromadb` fixture is `autouse=True`, so all tests mock ChromaDB unless they use the `real_chromadb` fixture.
+- **Server subprocess tests**: `test_server.py` starts real server subprocesses. These do NOT inherit the `mock_chromadb` patch — the server process uses real ChromaDB. Always use `sys.executable` (not `"python"`) in any `subprocess.run()` calls within tests.
+- **Frecency formula**: Uses exponential decay `exp(-0.01 * days_passed)` per commit. This gives much stronger recency weighting than the previous log formula, correctly making a single recent commit beat many old ones. Scores range from ~1.0 (today) to near-zero (years old).
+- **Batch git calls in `top_files()`**: Object IDs for all files are fetched in a single `git ls-tree HEAD -- file1 file2 ...` call. Do not revert to per-file `git ls-tree` calls — with 200+ files, per-file calls add ~2 seconds of overhead that breaks timing-sensitive server tests.
 
 ## Repository
 
